@@ -22,6 +22,17 @@ SlashCmdList["CDM"] = function(msg)
     end
 end
 
+-- /cdmt Slash Command - Open CDMTweaker options
+SLASH_CDMT1 = "/cdmt"
+
+SlashCmdList["CDMT"] = function(msg)
+    if CDMTweaker_SettingsCategory then
+        Settings.OpenToCategory(CDMTweaker_SettingsCategory:GetID())
+    else
+        print("|cFFFFFF00[CDMTweaker]|r Options panel not yet initialized.")
+    end
+end
+
 -- Mount Dim Feature
 -- CDMTweakerDB is a global SavedVariable, don't declare it as local
 local skyridingDimFrame = CreateFrame("Frame")

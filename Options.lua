@@ -230,13 +230,16 @@ local function CreateOptionsPanel()
     
     -- Slider description
     local sliderDesc = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    sliderDesc:SetPoint("TOPLEFT", opacitySlider, "BOTTOMLEFT", 0, -6)
+    sliderDesc:SetPoint("TOPLEFT", opacitySlider, "BOTTOMLEFT", 0, -24)
     sliderDesc:SetText("0% = invisible, 100% = fully visible")
     sliderDesc:SetTextColor(0.5, 0.5, 0.5)
     
     -- Register with the Settings API (modern WoW)
     local category = Settings.RegisterCanvasLayoutCategory(panel, panel.name)
     Settings.RegisterAddOnCategory(category)
+    
+    -- Store category globally for slash command access
+    CDMTweaker_SettingsCategory = category
 end
 
 -- Global function to create options panel (called from main file)
