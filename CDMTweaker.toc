@@ -1,0 +1,9 @@
+## Interface: 120000
+## Title: CDMTweaker
+## Notes: Tweaks and enhancements for Cooldown Manager including mount-based UI dimming and quick settings access
+## Author: Cyb3rSyph0n
+## Version: @project-version@
+## SavedVariables: CDMTweakerDB
+
+CDMTweaker.lua
+Options.lua

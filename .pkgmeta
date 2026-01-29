@@ -1,0 +1,6 @@
+package-as: CDMTweaker
+
+ignore:
+    - README.md
+    - .gitignore
+    - .github
