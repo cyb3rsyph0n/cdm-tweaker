@@ -47,6 +47,7 @@ local defaults = {
     dimUtilityCooldowns = true, -- Dim Utility Cooldown Viewer windows
     dimPrimaryResourceBar = true, -- Dim PrimaryResourceBar
     dimSecondaryResourceBar = true, -- Dim SecondaryResourceBar
+    dimBuffCooldownIconViewer = true, -- Dim BuffCooldownIconViewer
 }
 
 -- Get cooldown manager windows to dim
@@ -87,6 +88,13 @@ local function GetCooldownWindows()
                         addedFrames[frame] = true
                     end
                 end
+                -- Check BuffIconCooldownViewer (only if not already added)
+                if CDMTweakerDB.dimBuffCooldownIconViewer and not addedFrames[frame] then
+                    if name:find("BuffIconCooldownViewer") then
+                        table.insert(windows, frame)
+                        addedFrames[frame] = true
+                    end
+                end
             end
         end
     end
@@ -97,7 +105,7 @@ end
 -- Dim the cooldown windows
 local function DimCooldownWindows()
     -- Check if any frame dimming is enabled
-    if not CDMTweakerDB.dimEssentialCooldowns and not CDMTweakerDB.dimUtilityCooldowns and not CDMTweakerDB.dimPrimaryResourceBar and not CDMTweakerDB.dimSecondaryResourceBar then
+    if not CDMTweakerDB.dimEssentialCooldowns and not CDMTweakerDB.dimUtilityCooldowns and not CDMTweakerDB.dimPrimaryResourceBar and not CDMTweakerDB.dimSecondaryResourceBar and not CDMTweakerDB.dimBuffCooldownIconViewer then
         return
     end
     

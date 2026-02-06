@@ -130,9 +130,22 @@ local function CreateOptionsPanel()
         end
     end)
     
+    -- BuffCooldownIconViewer checkbox
+    local buffCooldownCheckbox = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
+    buffCooldownCheckbox:SetPoint("TOPLEFT", secondaryResourceCheckbox, "BOTTOMLEFT", 0, -SPACING)
+    buffCooldownCheckbox.Text:SetText("Buff Cooldown Icon Viewer")
+    buffCooldownCheckbox:SetChecked(CDMTweakerDB.dimBuffCooldownIconViewer)
+    buffCooldownCheckbox:SetScript("OnClick", function(self)
+        CDMTweakerDB.dimBuffCooldownIconViewer = self:GetChecked()
+        if CDMTweaker_IsDimmed() then
+            CDMTweaker_RestoreCooldownWindows()
+            CDMTweaker_DimCooldownWindows()
+        end
+    end)
+    
     -- Dim on all mounts checkbox
     local allMountsCheckbox = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
-    allMountsCheckbox:SetPoint("TOPLEFT", secondaryResourceCheckbox, "BOTTOMLEFT", 0, -SECTION_SPACING)
+    allMountsCheckbox:SetPoint("TOPLEFT", buffCooldownCheckbox, "BOTTOMLEFT", 0, -SECTION_SPACING)
     allMountsCheckbox.Text:SetText("Also dim during ground and normal flying")
     allMountsCheckbox:SetChecked(CDMTweakerDB.dimOnAllMounts)
     allMountsCheckbox:SetScript("OnClick", function(self)
