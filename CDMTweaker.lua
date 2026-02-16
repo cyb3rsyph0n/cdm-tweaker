@@ -57,7 +57,11 @@ local function GetCooldownWindows()
     
     -- Search through global frames for matching patterns
     for name, frame in pairs(_G) do
-        if type(name) == "string" and type(frame) == "table" and frame.GetAlpha and frame.SetAlpha then
+        -- Use pcall to safely access potentially protected tables
+        local success, isValidFrame = pcall(function()
+            return type(name) == "string" and type(frame) == "table" and frame.GetAlpha and frame.SetAlpha
+        end)
+        if success and isValidFrame then
             -- Skip settings windows and already added frames
             if not name:find("Settings") and not addedFrames[frame] then
                 -- Check Essential CooldownViewer frames
