@@ -50,60 +50,109 @@ local defaults = {
     dimBuffCooldownIconViewer = true, -- Dim BuffCooldownIconViewer
 }
 
--- Get cooldown manager windows to dim
-local function GetCooldownWindows()
-    local windows = {}
-    local addedFrames = {}
+-- Frame cache for performance (avoid iterating _G repeatedly)
+local cachedFrames = {
+    essential = {},
+    utility = {},
+    primaryResource = {},
+    secondaryResource = {},
+    buffCooldown = {},
+}
+local frameCacheBuilt = false
+local mountTickerHandle = nil
+
+-- Build frame cache by scanning _G once (with pcall protection for forbidden tables)
+local function BuildFrameCache()
+    wipe(cachedFrames.essential)
+    wipe(cachedFrames.utility)
+    wipe(cachedFrames.primaryResource)
+    wipe(cachedFrames.secondaryResource)
+    wipe(cachedFrames.buffCooldown)
     
-    -- Search through global frames for matching patterns
     for name, frame in pairs(_G) do
         -- Use pcall to safely access potentially protected tables
         local success, isValidFrame = pcall(function()
             return type(name) == "string" and type(frame) == "table" and frame.GetAlpha and frame.SetAlpha
         end)
-        if success and isValidFrame then
-            -- Skip settings windows and already added frames
-            if not name:find("Settings") and not addedFrames[frame] then
-                -- Check Essential CooldownViewer frames
-                if CDMTweakerDB.dimEssentialCooldowns and not addedFrames[frame] then
-                    if name:find("EssentialCooldownViewer") then
-                        table.insert(windows, frame)
-                        addedFrames[frame] = true
-                    end
-                end
-                -- Check Utility CooldownViewer frames
-                if CDMTweakerDB.dimUtilityCooldowns and not addedFrames[frame] then
-                    if name:find("UtilityCooldownViewer") then
-                        table.insert(windows, frame)
-                        addedFrames[frame] = true
-                    end
-                end
-                -- Check PrimaryResourceBar (only if not already added)
-                if CDMTweakerDB.dimPrimaryResourceBar and not addedFrames[frame] then
-                    if name:find("PrimaryResourceBar") then
-                        table.insert(windows, frame)
-                        addedFrames[frame] = true
-                    end
-                end
-                -- Check SecondaryResourceBar (only if not already added)
-                if CDMTweakerDB.dimSecondaryResourceBar and not addedFrames[frame] then
-                    if name:find("SecondaryResourceBar") then
-                        table.insert(windows, frame)
-                        addedFrames[frame] = true
-                    end
-                end
-                -- Check BuffIconCooldownViewer (only if not already added)
-                if CDMTweakerDB.dimBuffCooldownIconViewer and not addedFrames[frame] then
-                    if name:find("BuffIconCooldownViewer") then
-                        table.insert(windows, frame)
-                        addedFrames[frame] = true
-                    end
-                end
+        
+        if success and isValidFrame and not name:find("Settings") then
+            if name:find("EssentialCooldownViewer") then
+                table.insert(cachedFrames.essential, frame)
+            elseif name:find("UtilityCooldownViewer") then
+                table.insert(cachedFrames.utility, frame)
+            elseif name:find("PrimaryResourceBar") then
+                table.insert(cachedFrames.primaryResource, frame)
+            elseif name:find("SecondaryResourceBar") then
+                table.insert(cachedFrames.secondaryResource, frame)
+            elseif name:find("BuffIconCooldownViewer") then
+                table.insert(cachedFrames.buffCooldown, frame)
+            end
+        end
+    end
+    
+    frameCacheBuilt = true
+end
+
+-- Get cooldown manager windows to dim (uses cached frames)
+local function GetCooldownWindows()
+    if not frameCacheBuilt then
+        BuildFrameCache()
+    end
+    
+    local windows = {}
+    local addedFrames = {}
+    
+    if CDMTweakerDB.dimEssentialCooldowns then
+        for _, frame in ipairs(cachedFrames.essential) do
+            if not addedFrames[frame] then
+                table.insert(windows, frame)
+                addedFrames[frame] = true
+            end
+        end
+    end
+    
+    if CDMTweakerDB.dimUtilityCooldowns then
+        for _, frame in ipairs(cachedFrames.utility) do
+            if not addedFrames[frame] then
+                table.insert(windows, frame)
+                addedFrames[frame] = true
+            end
+        end
+    end
+    
+    if CDMTweakerDB.dimPrimaryResourceBar then
+        for _, frame in ipairs(cachedFrames.primaryResource) do
+            if not addedFrames[frame] then
+                table.insert(windows, frame)
+                addedFrames[frame] = true
+            end
+        end
+    end
+    
+    if CDMTweakerDB.dimSecondaryResourceBar then
+        for _, frame in ipairs(cachedFrames.secondaryResource) do
+            if not addedFrames[frame] then
+                table.insert(windows, frame)
+                addedFrames[frame] = true
+            end
+        end
+    end
+    
+    if CDMTweakerDB.dimBuffCooldownIconViewer then
+        for _, frame in ipairs(cachedFrames.buffCooldown) do
+            if not addedFrames[frame] then
+                table.insert(windows, frame)
+                addedFrames[frame] = true
             end
         end
     end
     
     return windows
+end
+
+-- Force rebuild of frame cache (call when settings change or new frames may exist)
+function CDMTweaker_RebuildFrameCache()
+    BuildFrameCache()
 end
 
 -- Dim the cooldown windows
@@ -156,6 +205,29 @@ end
 -- Track dim state
 local wasDimmed = false
 
+-- Start the mount ticker (only runs while mounted for performance)
+local function StartMountTicker()
+    if mountTickerHandle then return end -- Already running
+    mountTickerHandle = C_Timer.NewTicker(0.5, function()
+        if not ShouldDimUI() then
+            -- No longer mounted, stop ticker and restore
+            RestoreCooldownWindows()
+            wasDimmed = false
+            if mountTickerHandle then
+                mountTickerHandle:Cancel()
+                mountTickerHandle = nil
+            end
+        end
+    end)
+end
+
+local function StopMountTicker()
+    if mountTickerHandle then
+        mountTickerHandle:Cancel()
+        mountTickerHandle = nil
+    end
+end
+
 local function UpdateMountDim()
     local shouldDim = ShouldDimUI()
     
@@ -163,13 +235,12 @@ local function UpdateMountDim()
         -- Just started mounting/skyriding
         DimCooldownWindows()
         wasDimmed = true
+        StartMountTicker()
     elseif not shouldDim and wasDimmed then
         -- Just stopped mounting/skyriding
         RestoreCooldownWindows()
         wasDimmed = false
-    elseif shouldDim and wasDimmed then
-        -- Still mounted, ensure windows are dimmed (in case new windows opened)
-        DimCooldownWindows()
+        StopMountTicker()
     end
 end
 
@@ -209,8 +280,11 @@ skyridingDimFrame:SetScript("OnEvent", function(self, event, ...)
         -- Create options panel (defined in Options.lua)
         CDMTweaker_CreateOptionsPanel()
         
-        -- Start update ticker for smooth detection
-        C_Timer.NewTicker(0.5, UpdateMountDim)
+        -- Build frame cache once at login (delayed to ensure other addons loaded)
+        C_Timer.After(2, BuildFrameCache)
+        
+        -- Check mount state on login (in case already mounted)
+        C_Timer.After(0.5, UpdateMountDim)
     else
         -- For mount changes, update after a short delay
         C_Timer.After(0.1, UpdateMountDim)

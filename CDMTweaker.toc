@@ -3,7 +3,6 @@
 ## Notes: Tweaks and enhancements for Cooldown Manager including mount-based UI dimming and quick settings access
 ## Author: Cyb3rSyph0n
 ## Version: @project-version@
-## X-Curse-Project-ID: 1448294
 ## SavedVariables: CDMTweakerDB
 
 CDMTweaker.lua
